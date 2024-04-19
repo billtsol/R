@@ -1,0 +1,95 @@
+---
+title: "Tsolakidis_6"
+output:
+  word_document: default
+  html_document: default
+date: "2024-04-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Εργασία 6 - Τσολακιδης Βασιλειος
+
+Να δημιουργήσετε ένα R markdown αρχείο (.rmd) με ένα case study Λογιστικής Παλινδρόμησης. Θα χρησιμοποιήσετε τα δεδομένα του Framingham Heart Study για να δημιουργήσετε ένα Μοντέλο Λογιστικής Παλινδρόμησης το οποίο θα δίνει προβλέψεις για την εξαρτημένη μεταβλητή TenYearCHD, δηλαδή την πιθανότητα εμφάνισης στεφανιαίας νόσου στους ασθενείς της βάσης για την επόμενη δεκαετία.
+
+```{r}
+# Εισαγωγή των απαιτούμενων βιβλιοθηκών
+library(caTools)
+library(ROCR)
+
+```
+
+## Φορτωμα δεδομένων του Framingham Heart Study και χωρισμος της βάση σε training και testing sets με τυχαίο τρόπο. Το training set θα είναι το 65% της βάσης και θα ορίσουμε το seed σε 971.
+
+```{r}
+
+# Φόρτωση των δεδομένων
+data <- read.csv("framingham.csv")
+
+# Ορισμός του seed
+set.seed(971)
+
+# Διαχωρισμός της βάσης σε training και testing sets
+split <- sample.split(data$TenYearCHD, SplitRatio = 0.65)
+train <- subset(data, split == TRUE)
+test <- subset(data, split == FALSE)
+
+# Για να εκκαθαρίσουμε τις εγγραφές που περιέχουν κελιά με τιμές NA.
+# cleaned_train <- train[complete.cases(train), ]
+# cleaned_test <- test[complete.cases(test), ]
+# Εμφάνιση του αριθμού των εγγραφών μετά την εκκαθάριση
+# cat("Αριθμός καταχωρήσεων στο cleaned training set:", nrow(cleaned_train), "\n")
+#cat("Αριθμός καταχωρήσεων στο cleaned test set:", nrow(cleaned_test), "\n")
+
+# Αριθμός καταχωρήσεων σε κάθε set
+cat("Αριθμός καταχωρήσεων στο training set:", nrow(train), "\n")
+cat("Αριθμός καταχωρήσεων στο test set:", nrow(test), "\n")
+
+```
+
+## Δημιουργια τΜοντέλου Λογιστικής Παλινδρόμησης στο training set και αναλυση των συσχετίσεων των ανεξάρτητων μεταβλητών με την εξαρτημένη μεταβλητή TenYearCHD.
+
+```{r}
+
+# Μοντέλο Λογιστικής Παλινδρόμησης
+framinghamLog <- glm(TenYearCHD ~ ., data = train, family = binomial)
+
+# Εμφάνιση των συντελεστών (coefficients) του μοντέλου
+summary(framinghamLog)
+```
+
+### Σχολιασμος
+Από τα αποτελέσματα του μοντέλου μπορούμε να δούμε τους συντελεστές για κάθε ανεξάρτητη μεταβλητή. Οι μεταβλητές με ισχυρή συσχέτιση με την εξαρτημένη μεταβλητή TenYearCHD και με σημαντικότητα (significance) θα έχουν μεγάλο απόλυτο τιμή του συντελεστή (coefficient) και μικρή p-value.
+
+## Βελτιστο Μοντέλο Λογιστικής Παλινδρόμησης
+```{r}
+
+# ------------ Βελτιστο Μοντέλο Λογιστικής Παλινδρόμησης ------------ 
+# Επιλογή μόνο των βέλτιστων μεταβλητών
+selected_variables <- c("age", "male", "BMI", "glucose", "diabetes", "TenYearCHD")
+
+# Μοντέλο Λογιστικής Παλινδρόμησης με τις επιλεγμένες μεταβλητές
+framinghamLogOptimal <- glm(TenYearCHD ~ ., data = train[,selected_variables], family = binomial)
+
+# Εμφάνιση των συντελεστών (coefficients) του νέου μοντέλου
+summary(framinghamLogOptimal)
+```
+
+### Σχολιασμος
+Το βέλτιστο μοντέλο Λογιστικής Παλινδρόμησης που δημιουργήσαμε βασίζεται σε μια πιο απλοποιημένη εκδοχή του αρχικού μοντέλου, περιλαμβάνοντας μόνο τις πιο σημαντικές μεταβλητές που επηρεάζουν την εξαρτημένη μεταβλητή TenYearCHD, όπως ο ηλικία, το φύλο, το Δείκτης Μάζας Σώματος (BMI), η γλυκόζη και η διαβήτης.Η αφαίρεση μη σημαντικών μεταβλητών από το μοντέλο συμβάλλει στη μείωση της πολυπλοκότητας του μοντέλου και τη βελτίωση της απόδοσής του, ενώ ταυτόχρονα μειώνει τον κίνδυνο υπερ-προσαρμογής (overfitting).
+
+## Προβλέψεις στο test set χρησιμοποιώντας το μοντέλο που δημιουργήσαμε και να εξετάσουμε τι ακριβώς μας δείχνει η εντολή predict.
+
+```{r}
+
+# Προβλέψεις στο test set
+predictTest <- predict(framinghamLog, newdata = test, type = "response")
+
+# Εμφάνιση των πρώτων 10 προβλέψεων
+head(predictTest)
+
+```
+
+
