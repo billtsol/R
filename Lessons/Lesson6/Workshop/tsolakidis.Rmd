@@ -1,0 +1,91 @@
+---
+title: "Tsolakidis"
+output: html_document
+date: "2024-04-18"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Inert Data
+
+```{r cars}
+library(ggplot2)
+
+# Read data
+NBA <- read.csv("C:\\Users\\billt\\Documents\\github\\R\\Lessons\\Lesson6\\Workshop\\NBA_train.csv")
+
+```
+
+#
+
+```{r}
+
+NBA$PTSdiff <- NBA$PTS - NBA$oppPTS
+  
+ggplot(NBA, aes(x = NBA$W, y = NBA$PTSdiff)) + geom_point()
+
+```
+
+## PointsReg 
+
+```{r}
+# Μοντελο πολλαπλης γραμμικης παλινδρομησης
+
+PointsReg <- lm(PTS ~ X2PA + X3PA + FTA + AST + ORB + DRB + TOV + STL + BLK, data=NBA)
+
+SSE <- sum(PointsReg$residuals^2)
+RMSE <- sqrt(SSE/ nrow(NBA))
+
+mean(NBA$PTS)
+
+```
+
+## PointsReg2
+
+```{r}
+
+PointsReg2 <- lm(PTS ~ X2PA + X3PA + FTA + AST + ORB + DRB + STL + BLK, data=NBA)
+
+summary(PointsReg2)
+
+SSE2 <- sum(PointsReg2$residuals^2)
+RMSE2 <- sqrt(SSE2/ nrow(NBA))
+
+mean(NBA$PTS)
+
+```
+
+## PointsReg4
+
+```{r}
+
+PointsReg4 <- lm(PTS ~ X2PA + X3PA + FTA + AST + ORB + STL, data=NBA)
+
+summary(PointsReg4)
+
+SSE4 <- sum(PointsReg4$residuals^2)
+SSE4
+RMSE4 <- sqrt(SSE4/ nrow(NBA))
+RMSE4
+mean(NBA$PTS)
+
+```
+
+
+# προβλεψεις
+
+```{r}
+
+# Read test data
+NBA_TEST <- read.csv("C:\\Users\\billt\\Documents\\github\\R\\Lessons\\Lesson6\\Workshop\\NBA_test.csv")
+
+PointsPredictions <- predict(PointsReg4, newdata = NBA_TEST)
+
+SSE <- sum((PointsPredictions - NBA_TEST$PTS)^2)
+SST <- sum((mean(NBA$PTS) - NBA_TEST$PTS)^2)
+R2 <- 1 - SSE / SST
+R2
+```
+
